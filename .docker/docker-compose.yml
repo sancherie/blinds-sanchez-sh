@@ -1,0 +1,13 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: .docker/nginx/Dockerfile
+    environment:
+      VIRTUAL_HOST: blinds.sanchez.sh
+      LETSENCRYPT_HOST: blinds.sanchez.sh
+    networks:
+      - proxy
+networks:
+  proxy:
+    external: true
