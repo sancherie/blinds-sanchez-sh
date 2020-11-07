@@ -1,0 +1,81 @@
+version: '3.7'
+
+x-production: &staging
+  restart: always
+
+services:
+  db:
+    <<: *staging
+    environment:
+      MYSQL_PASSWORD: $DATABASE_PASSWORD
+  redis:
+    <<: *staging
+  echo:
+    <<: *staging
+    image: $CI_REGISTRY_IMAGE/echo
+    build:
+      cache_from:
+       - $CI_REGISTRY_IMAGE/echo
+    networks:
+      - proxy
+    environment:
+      VIRTUAL_HOST: ws.staging.api.restorit.fr
+      LETSENCRYPT_HOST: ws.staging.api.restorit.fr
+  php:
+    <<: *staging
+    image: $CI_REGISTRY_IMAGE/php/production
+    build:
+      dockerfile: .docker/php/Dockerfile.production
+      cache_from:
+        - $CI_REGISTRY_IMAGE/php/test
+        - $CI_REGISTRY_IMAGE/php/production
+    environment:
+      APP_NAME: Restor'It Staging
+      APP_ENV: staging
+      APP_KEY: $APPLICATION_KEY
+      APP_DEBUG: 'false'
+      APP_URL: https://staging.api.restorit.fr
+      AWS_ACCESS_KEY_ID: $AWS_CLIENT_ID
+      AWS_BUCKET: storage.restorit.fr
+      AWS_DEFAULT_REGION: eu-west-3
+      AWS_SECRET_ACCESS_KEY: $AWS_CLIENT_SECRET
+      BROADCAST_DRIVER: redis
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: api
+      DB_USERNAME: api
+      DB_PASSWORD: $DATABASE_PASSWORD
+      LOG_DISCORD_WEBHOOK_URL: $LOG_DISCORD_WEBHOOK_URL
+      MAIL_DRIVER: smtp
+      MAIL_HOST: in-v3.mailjet.com
+      MAIL_PORT: 587
+      MAIL_USERNAME: 4cc9cc5cfa1210b85e09b6d906b6f329
+      MAIL_PASSWORD: $MAIL_PASSWORD
+      MAIL_ENCRYPTION: tls
+      PAYPAL_ENVIRONMENT: sandbox
+      PAYPAL_CLIENT_ID: $PAYPAL_CLIENT_ID
+      PAYPAL_CLIENT_SECRET: $PAYPAL_CLIENT_SECRET
+      JWT_SECRET: $JWT_SECRET
+      JWT_TTL: 10080
+    volumes:
+      - storage:/code/storage
+  nginx:
+    <<: *staging
+    image: $CI_REGISTRY_IMAGE/nginx
+    build:
+      cache_from:
+       - $CI_REGISTRY_IMAGE/nginx
+    environment:
+      VIRTUAL_HOST: staging.api.restorit.fr
+      LETSENCRYPT_HOST: staging.api.restorit.fr
+    volumes:
+      - storage:/code/storage
+    networks:
+      - proxy
+networks:
+  proxy:
+    external: true
+volumes:
+  storage:
+  certs:
